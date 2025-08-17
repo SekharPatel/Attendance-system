@@ -65,14 +65,14 @@ def attendance_records():
     records = attendance_query.paginate(page=page, per_page=per_page, error_out=False)
     return render_template('attendance_records.html', records=records)
 
-@admin.route('/temp-card/<int:student_id>')
-def generate_temp_card(student_id):
+@admin.route('/id-card/<int:student_id>')
+def generate_id_card(student_id):
     student = Student.query.get_or_404(student_id)
-    if not student.temp_card_id:
-        student.generate_temp_card_id()
+    if not student.nfc_tag_id:
+        student.generate_nfc_tag_id()
         db.session.commit()
 
-    qr_data = f"TEMP_CARD:{student.temp_card_id}:{student.student_id}"
+    qr_data = f"NFC_CARD:{student.nfc_tag_id}:{student.student_id}"
     qr = qrcode.QRCode(version=1, box_size=10, border=5)
     qr.add_data(qr_data)
     qr.make(fit=True)
@@ -82,4 +82,4 @@ def generate_temp_card(student_id):
     img.save(buffer)
     img_str = base64.b64encode(buffer.getvalue()).decode()
 
-    return render_template('temp_id_card.html', student=student, qr_code=img_str)
+    return render_template('id_card.html', student=student, qr_code=img_str)

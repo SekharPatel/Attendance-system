@@ -102,7 +102,7 @@ def create_student():
                 department=data.get('department'),
                 year=data.get('year')
             )
-            student.generate_temp_card_id()
+            student.generate_nfc_tag_id()
             db.session.add(student)
             db.session.flush()
 
@@ -116,7 +116,7 @@ def create_student():
         return jsonify({
             'message': 'Student created and enrolled successfully',
             'student_id': student.id,
-            'temp_card_id': student.temp_card_id
+            'nfc_tag_id': student.nfc_tag_id
         }), 201
     except Exception as e:
         db.session.rollback()
@@ -133,7 +133,7 @@ def get_students():
         'email': s.email,
         'department': s.department,
         'year': s.year,
-        'temp_card_id': s.temp_card_id
+        'nfc_tag_id': s.nfc_tag_id
     } for s in students])
 
 
@@ -182,34 +182,34 @@ def get_courses():
 
 @api.route('/attendance/mark', methods=['POST'])
 def mark_attendance():
+    """
+    Marks attendance for a student based on their NFC tag and the classroom's NFC reader.
+    Expects a JSON payload with 'nfc_tag_id' and 'nfc_reader_id'.
+    """
     data = request.json
-    qr_data = data.get('qr_data')
+    nfc_tag_id = data.get('nfc_tag_id')
+    nfc_reader_id = data.get('nfc_reader_id')
 
-    if not qr_data:
-        return jsonify({'error': 'Missing qr_data parameter'}), 400
+    if not nfc_tag_id or not nfc_reader_id:
+        return jsonify({'error': 'Missing nfc_tag_id or nfc_reader_id'}), 400
 
-    try:
-        parts = qr_data.split(':')
-        if len(parts) != 3 or parts[0] != 'TEMP_CARD':
-            raise ValueError("Invalid QR code format")
-        temp_card_id = parts[1]
-        student_id_str = parts[2]
-    except (ValueError, IndexError) as e:
-        return jsonify({'error': f'Invalid QR data format: {e}'}), 400
-
-    student = Student.query.filter_by(
-        student_id=student_id_str,
-        temp_card_id=temp_card_id
-    ).first()
-
+    # 1. Find the student by their NFC tag
+    student = Student.query.filter_by(nfc_tag_id=nfc_tag_id).first()
     if not student:
-        return jsonify({'error': 'Student not found or temporary card is invalid'}), 404
+        return jsonify({'error': 'Invalid student NFC tag'}), 404
 
-    now = datetime.utcnow()
+    # 2. Find the classroom by the NFC reader ID
+    classroom = Classroom.query.filter_by(nfc_reader_id=nfc_reader_id).first()
+    if not classroom:
+        return jsonify({'error': 'Invalid classroom NFC reader ID'}), 404
+
+    # 3. Find the active class session in this specific classroom at the current time
+    now = datetime.now()
     current_time = now.time()
     current_date = now.date()
 
     class_session = ClassSession.query.filter(
+        ClassSession.classroom_id == classroom.id,
         ClassSession.session_date == current_date,
         ClassSession.start_time <= current_time,
         ClassSession.end_time >= current_time,
@@ -217,8 +217,9 @@ def mark_attendance():
     ).first()
 
     if not class_session:
-        return jsonify({'error': 'No active class session found at this time'}), 404
+        return jsonify({'error': f'No active class session found in classroom {classroom.room_number} at this time'}), 404
 
+    # 4. Verify the student is enrolled in the course for this session
     is_enrolled = CourseEnrollment.query.filter_by(
         student_id=student.id,
         course_id=class_session.course_id,
@@ -226,8 +227,9 @@ def mark_attendance():
     ).first()
 
     if not is_enrolled:
-        return jsonify({'error': 'Access denied: Student is not enrolled in this course.'}), 403
+        return jsonify({'error': f'Access denied: Student {student.full_name} is not enrolled in {class_session.course.course_name}.'}), 403
 
+    # 5. Check if attendance has already been marked
     existing_attendance = Attendance.query.filter_by(
         student_id=student.id,
         class_session_id=class_session.id
@@ -240,12 +242,13 @@ def mark_attendance():
             'check_in_time': existing_attendance.check_in_time.isoformat()
         }), 200
 
+    # 6. Record the attendance
     try:
         new_attendance = Attendance(
             student_id=student.id,
             class_session_id=class_session.id,
             check_in_time=now,
-            method='temp_card'
+            method='nfc_card'
         )
         db.session.add(new_attendance)
         db.session.commit()
@@ -254,8 +257,10 @@ def mark_attendance():
             'message': 'Attendance marked successfully',
             'student_name': student.full_name,
             'course': class_session.course.course_name,
+            'classroom': classroom.room_number,
             'check_in_time': now.isoformat()
         }), 201
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': f'Database error: {str(e)}'}), 500
+

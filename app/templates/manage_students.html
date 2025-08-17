@@ -21,7 +21,7 @@
                         <th>Email</th>
                         <th>Department</th>
                         <th>Year</th>
-                        <th>Temp Card ID</th>
+                        <th>NFC Tag ID</th>
                         <th>Actions</th>
                     </tr>
                 </thead>
@@ -34,11 +34,11 @@
                         <td>{{ student.department or 'N/A' }}</td>
                         <td>{{ student.year or 'N/A' }}</td>
                         <td>
-                            <code>{{ student.temp_card_id or 'Not Generated' }}</code>
+                            <code>{{ student.nfc_tag_id or 'Not Generated' }}</code>
                         </td>
                         <td>
                             <div class="btn-group btn-group-sm">
-                                <a href="{{ url_for('admin.generate_temp_card', student_id=student.id) }}"
+                                <a href="{{ url_for('admin.generate_id_card', student_id=student.id) }}" 
                                    class="btn btn-info" target="_blank">
                                     <i class="fas fa-id-card"></i>
                                 </a>
@@ -57,6 +57,7 @@
         </div>
     </div>
 </div>
+
 
 <!-- Add Student Modal -->
 <div class="modal fade" id="addStudentModal" tabindex="-1">

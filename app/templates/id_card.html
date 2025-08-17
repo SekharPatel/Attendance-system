@@ -1,14 +1,14 @@
 {% extends "base.html" %}
 
-{% block title %}Temporary ID Card - {{ student.full_name }}{% endblock %}
+{% block title %}ID Card - {{ student.full_name }}{% endblock %}
 
 {% block content %}
 <div class="row justify-content-center">
     <div class="col-md-6">
-        <div class="card shadow" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+        <div class="card shadow" style="background: linear-gradient(135deg, #007bff 0%, #0056b3 100%); color: white;">
             <div class="card-header text-center border-0" style="background: transparent;">
                 <h4 class="mb-0">COLLEGE ID CARD</h4>
-                <small>Temporary Access Card</small>
+                <small>Digital Access Card</small>
             </div>
             <div class="card-body text-center">
                 <div class="row">
@@ -20,9 +20,9 @@
                             <p class="mb-1"><strong>Year:</strong> {{ student.year or 'N/A' }}</p>
                             <p class="mb-1"><strong>Email:</strong> {{ student.email }}</p>
                             <div class="mt-3">
-                                <strong>Temp Card ID:</strong><br>
+                                <strong>NFC Tag ID:</strong><br>
                                 <code style="font-size: 1.2em; background: rgba(255,255,255,0.2); padding: 5px 10px; border-radius: 5px;">
-                                    {{ student.temp_card_id }}
+                                    {{ student.nfc_tag_id }}
                                 </code>
                             </div>
                         </div>
@@ -39,12 +39,12 @@
                 <hr style="border-color: rgba(255,255,255,0.3);">
                 <div class="row text-center" style="font-size: 0.9em;">
                     <div class="col-6">
-                        <strong>Valid From:</strong><br>
+                        <strong>Issued On:</strong><br>
                         {{ student.created_at.strftime('%d/%m/%Y') }}
                     </div>
                     <div class="col-6">
                         <strong>Card Type:</strong><br>
-                        Temporary NFC
+                        NFC Digital
                     </div>
                 </div>
             </div>

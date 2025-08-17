@@ -155,9 +155,9 @@ Here are the primary API endpoints available:
 ● Method : POST
 ● Description : Marks a student's attendance using the data from the QR code.
 ● Body (JSON) :
-{
-"qr_data": "TEMP_CARD:5163E88B:R02823CSC001"
-}
+
+{"nfc_tag_id": "<id>","nfc_reader_id": "<id>"}
+
 ● Success Response (201) :
 {
 "message": "Attendance marked successfully",
