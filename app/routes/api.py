@@ -6,7 +6,7 @@ from app.models.user import User
 from app.models.student import Student
 from app.models.course import Course, CourseEnrollment
 from app.models.attendance import Attendance
-from app.models.classroom import ClassSession
+from app.models.classroom import Classroom, ClassSession
 from app.models.database import db
 
 api = Blueprint('api', __name__)
@@ -19,6 +19,54 @@ def admin_required(f):
             return jsonify({'error': 'Administrator access required'}), 403
         return f(*args, **kwargs)
     return decorated_function
+
+@api.route('/classrooms', methods=['POST'])
+@admin_required
+def create_classroom():
+    data = request.json
+    if not data or 'room_number' not in data:
+        return jsonify({'error': 'Missing room number'}), 400
+    
+    if Classroom.query.filter_by(room_number=data['room_number']).first():
+        return jsonify({'error': 'Classroom with this number already exists'}), 409
+
+    try:
+        new_classroom = Classroom(
+            room_number=data['room_number'],
+            building=data.get('building'),
+            capacity=data.get('capacity'),
+            nfc_reader_id=data.get('nfc_reader_id')
+        )
+        db.session.add(new_classroom)
+        db.session.commit()
+        return jsonify({'message': 'Classroom created successfully'}), 201
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+@api.route('/class-sessions', methods=['POST'])
+@admin_required
+def create_class_session():
+    data = request.json
+    required_fields = ['course_id', 'classroom_id', 'session_date', 'start_time', 'end_time']
+    if not all(field in data for field in required_fields):
+        return jsonify({'error': 'Missing required fields'}), 400
+
+    try:
+        new_session = ClassSession(
+            course_id=int(data['course_id']),
+            classroom_id=int(data['classroom_id']),
+            session_date=datetime.strptime(data['session_date'], '%Y-%m-%d').date(),
+            start_time=datetime.strptime(data['start_time'], '%H:%M').time(),
+            end_time=datetime.strptime(data['end_time'], '%H:%M').time()
+        )
+        db.session.add(new_session)
+        db.session.commit()
+        return jsonify({'message': 'Class session scheduled successfully'}), 201
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
 
 @api.route('/students', methods=['POST'])
 @admin_required
@@ -34,7 +82,6 @@ def create_student():
     course_ids = data.get('courses', [])
 
     try:
-        # Use a transaction to ensure all or nothing is committed
         with db.session.begin_nested():
             user = User(
                 username=data['student_id'],
@@ -59,7 +106,6 @@ def create_student():
             db.session.add(student)
             db.session.flush()
 
-            # Create course enrollments
             if course_ids:
                 for course_id in course_ids:
                     enrollment = CourseEnrollment(student_id=student.id, course_id=int(course_id))
@@ -172,6 +218,15 @@ def mark_attendance():
 
     if not class_session:
         return jsonify({'error': 'No active class session found at this time'}), 404
+
+    is_enrolled = CourseEnrollment.query.filter_by(
+        student_id=student.id,
+        course_id=class_session.course_id,
+        is_active=True
+    ).first()
+
+    if not is_enrolled:
+        return jsonify({'error': 'Access denied: Student is not enrolled in this course.'}), 403
 
     existing_attendance = Attendance.query.filter_by(
         student_id=student.id,

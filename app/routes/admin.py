@@ -7,7 +7,7 @@ from io import BytesIO
 from app.models.user import User
 from app.models.student import Student
 from app.models.course import Course, CourseEnrollment
-from app.models.classroom import Classroom
+from app.models.classroom import Classroom, ClassSession
 from app.models.attendance import Attendance
 from app.models.database import db
 
@@ -48,6 +48,14 @@ def manage_courses():
     courses = Course.query.order_by(Course.course_name).all()
     teachers = User.query.filter_by(role='teacher').all()
     return render_template('manage_courses.html', courses=courses, teachers=teachers)
+
+@admin.route('/schedule')
+def manage_schedule():
+    classrooms = Classroom.query.order_by(Classroom.room_number).all()
+    sessions = ClassSession.query.order_by(ClassSession.session_date.desc(), ClassSession.start_time.desc()).all()
+    courses = Course.query.filter_by(is_active=True).order_by(Course.course_name).all()
+    return render_template('manage_schedule.html', classrooms=classrooms, sessions=sessions, courses=courses)
+
 
 @admin.route('/attendance')
 def attendance_records():

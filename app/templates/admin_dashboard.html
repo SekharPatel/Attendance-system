@@ -74,7 +74,7 @@
 </div>
 
 <div class="row">
-    <div class="col-md-4 mb-4">
+    <div class="col-md-3 mb-4">
         <div class="card h-100">
             <div class="card-header bg-primary text-white">
                 <h5 class="mb-0"><i class="fas fa-users me-2"></i>Student Management</h5>
@@ -88,7 +88,7 @@
         </div>
     </div>
     
-    <div class="col-md-4 mb-4">
+    <div class="col-md-3 mb-4">
         <div class="card h-100">
             <div class="card-header bg-success text-white">
                 <h5 class="mb-0"><i class="fas fa-book me-2"></i>Course Management</h5>
@@ -101,8 +101,22 @@
             </div>
         </div>
     </div>
+
+    <div class="col-md-3 mb-4">
+        <div class="card h-100">
+            <div class="card-header" style="background-color: #6f42c1; color: white;">
+                <h5 class="mb-0"><i class="fas fa-calendar-alt me-2"></i>Schedule Management</h5>
+            </div>
+            <div class="card-body">
+                <p class="card-text">Manage classrooms and schedule class sessions for courses.</p>
+                <a href="{{ url_for('admin.manage_schedule') }}" class="btn" style="background-color: #6f42c1; color: white;">
+                    <i class="fas fa-cog me-2"></i>Manage Schedule
+                </a>
+            </div>
+        </div>
+    </div>
     
-    <div class="col-md-4 mb-4">
+    <div class="col-md-3 mb-4">
         <div class="card h-100">
             <div class="card-header bg-info text-white">
                 <h5 class="mb-0"><i class="fas fa-chart-line me-2"></i>Attendance Reports</h5>
