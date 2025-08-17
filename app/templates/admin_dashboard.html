@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Dashboard{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="fas fa-tachometer-alt me-2"></i>Admin Dashboard</h2>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card text-white bg-primary">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h4>{{ stats.total_students }}</h4>
+                        <p class="mb-0">Total Students</p>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-users fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="card text-white bg-success">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h4>{{ stats.total_courses }}</h4>
+                        <p class="mb-0">Total Courses</p>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-book fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="card text-white bg-info">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h4>{{ stats.total_classrooms }}</h4>
+                        <p class="mb-0">Classrooms</p>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-door-open fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="card text-white bg-warning">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h4>{{ stats.today_attendance }}</h4>
+                        <p class="mb-0">Today's Attendance</p>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-calendar-check fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-4 mb-4">
+        <div class="card h-100">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="fas fa-users me-2"></i>Student Management</h5>
+            </div>
+            <div class="card-body">
+                <p class="card-text">Add, edit, and manage student profiles and temporary ID cards.</p>
+                <a href="{{ url_for('admin.manage_students') }}" class="btn btn-primary">
+                    <i class="fas fa-cog me-2"></i>Manage Students
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4 mb-4">
+        <div class="card h-100">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0"><i class="fas fa-book me-2"></i>Course Management</h5>
+            </div>
+            <div class="card-body">
+                <p class="card-text">Create and manage courses, subjects, and class schedules.</p>
+                <a href="{{ url_for('admin.manage_courses') }}" class="btn btn-success">
+                    <i class="fas fa-cog me-2"></i>Manage Courses
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4 mb-4">
+        <div class="card h-100">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0"><i class="fas fa-chart-line me-2"></i>Attendance Reports</h5>
+            </div>
+            <div class="card-body">
+                <p class="card-text">View and analyze attendance records and generate reports.</p>
+                <a href="{{ url_for('admin.attendance_records') }}" class="btn btn-info">
+                    <i class="fas fa-chart-bar me-2"></i>View Records
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

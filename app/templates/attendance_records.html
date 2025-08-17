@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+
+{% block title %}Attendance Records{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="fas fa-chart-line me-2"></i>Attendance Records</h2>
+    <div class="btn-group">
+        <button class="btn btn-outline-primary" onclick="exportRecords()">
+            <i class="fas fa-download me-2"></i>Export
+        </button>
+        <button class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#filterModal">
+            <i class="fas fa-filter me-2"></i>Filter
+        </button>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Student</th>
+                        <th>Course</th>
+                        <th>Check In</th>
+                        <th>Check Out</th>
+                        <th>Status</th>
+                        <th>Method</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for record in records.items %}
+                    <tr>
+                        <td>{{ record.check_in_time.strftime('%Y-%m-%d') }}</td>
+                        <td>
+                            <strong>{{ record.student.full_name }}</strong><br>
+                            <small class="text-muted">{{ record.student.student_id }}</small>
+                        </td>
+                        <td>
+                            <strong>{{ record.class_session.course.course_code }}</strong><br>
+                            <small class="text-muted">{{ record.class_session.course.course_name }}</small>
+                        </td>
+                        <td>{{ record.check_in_time.strftime('%H:%M:%S') }}</td>
+                        <td>{{ record.check_out_time.strftime('%H:%M:%S') if record.check_out_time else 'N/A' }}</td>
+                        <td>
+                            <span class="badge bg-{{ 'success' if record.status == 'present' else 'warning' if record.status == 'late' else 'danger' }}">
+                                {{ record.status.title() }}
+                            </span>
+                        </td>
+                        <td>
+                            <span class="badge bg-{{ 'primary' if record.method == 'nfc' else 'info' }}">
+                                {{ record.method.upper() }}
+                            </span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Pagination -->
+        {% if records.pages > 1 %}
+        <nav aria-label="Attendance records pagination">
+            <ul class="pagination justify-content-center">
+                {% if records.has_prev %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ url_for('admin.attendance_records', page=records.prev_num) }}">Previous</a>
+                    </li>
+                {% endif %}
+                
+                {% for page_num in records.iter_pages() %}
+                    {% if page_num %}
+                        {% if page_num != records.page %}
+                            <li class="page-item">
+                                <a class="page-link" href="{{ url_for('admin.attendance_records', page=page_num) }}">{{ page_num }}</a>
+                            </li>
+                        {% else %}
+                            <li class="page-item active">
+                                <span class="page-link">{{ page_num }}</span>
+                            </li>
+                        {% endif %}
+                    {% else %}
+                        <li class="page-item disabled">
+                            <span class="page-link">...</span>
+                        </li>
+                    {% endif %}
+                {% endfor %}
+                
+                {% if records.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ url_for('admin.attendance_records', page=records.next_num) }}">Next</a>
+                    </li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function exportRecords() {
+    alert('Export functionality to be implemented');
+}
+</script>
+{% endblock %}

@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block title %}Internal Server Error{% endblock %}
+{% block content %}
+<div class="text-center">
+    <h1>500 - Internal Server Error</h1>
+    <p>An unexpected error has occurred. We are working to fix the problem.</p>
+    <a href="{{ url_for('auth.index') }}" class="btn btn-primary">Go Home</a>
+</div>
+{% endblock %}
