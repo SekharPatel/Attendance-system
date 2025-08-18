@@ -131,7 +131,7 @@ python app.py
 2. You will be redirected to the login page.
 3. Use the default admin credentials to log in:
     ○ **Username** : admin
-    ○ **Password** : admin
+    ○ **Password** : admin123
 
 ### Basic Workflow
 

@@ -11,6 +11,7 @@ class Course(db.Model):
     description = db.Column(db.Text)
     credits = db.Column(db.Integer, default=3)
     department = db.Column(db.String(100))
+    semester = db.Column(db.Integer, nullable=False, default=1)
     teacher_id = db.Column(db.Integer, db.ForeignKey('users.id'))
     is_active = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
@@ -21,7 +22,7 @@ class Course(db.Model):
     class_sessions = db.relationship('ClassSession', backref='course', lazy='dynamic')
     
     def __repr__(self):
-        return f'<Course {self.course_code}: {self.course_name}>'
+        return f'<Course {self.course_code}: {self.course_name} (Semester {self.semester})>'
 
 class CourseEnrollment(db.Model):
     __tablename__ = 'course_enrollments'

@@ -8,9 +8,9 @@ auth = Blueprint('auth', __name__)
 def index():
     if current_user.is_authenticated:
         if current_user.role == 'admin':
-            return redirect(url_for('admin.admin_dashboard'))
+            return redirect(url_for('admin.dashboard'))
         elif current_user.role == 'student':
-            return redirect(url_for('student.student_dashboard'))
+            return redirect(url_for('student.dashboard'))
     return redirect(url_for('auth.login'))
 
 @auth.route('/login', methods=['GET', 'POST'])

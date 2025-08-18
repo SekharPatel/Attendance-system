@@ -5,39 +5,198 @@
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h2><i class="fas fa-calendar-alt me-2"></i>Manage Schedule</h2>
+    <div class="btn-group" role="group">
+        <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addScheduleModal">
+            <i class="fas fa-plus me-2"></i>Create Schedule
+        </button>
+        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addClassroomModal">
+            <i class="fas fa-door-open me-2"></i>Add Classroom
+        </button>
+    </div>
 </div>
 
-<!-- Manage Classrooms Section -->
+<!-- Filter Controls -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="GET" class="row g-3">
+            <div class="col-md-3">
+                <label for="semester" class="form-label">Semester</label>
+                <select class="form-select" id="semester" name="semester" onchange="this.form.submit()">
+                    <option value="">All Semesters</option>
+                    {% for stat in semester_stats %}
+                    <option value="{{ stat.semester }}" {{ 'selected' if current_filters.semester==stat.semester }}>
+                        Semester {{ stat.semester }} ({{ stat.count }} schedules)
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label for="classroom" class="form-label">Classroom</label>
+                <select class="form-select" id="classroom" name="classroom" onchange="this.form.submit()">
+                    <option value="">All Classrooms</option>
+                    {% for classroom in classrooms %}
+                    <option value="{{ classroom.id }}" {{ 'selected' if current_filters.classroom==classroom.id }}>
+                        {{ classroom.room_number }} ({{ classroom.building or 'N/A' }})
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label for="view" class="form-label">View</label>
+                <select class="form-select" id="view" name="view" onchange="this.form.submit()">
+                    <option value="timetable" {{ 'selected' if current_filters.view=='timetable' }}>Timetable Grid
+                    </option>
+                    <option value="list" {{ 'selected' if current_filters.view=='list' }}>List View</option>
+                </select>
+            </div>
+            <div class="col-md-3 d-flex align-items-end">
+                <button type="button" class="btn btn-outline-secondary"
+                    onclick="window.location.href='{{ url_for('admin.manage_schedule') }}'">
+                    <i class="fas fa-times me-2"></i>Clear Filters
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% if current_filters.view == 'timetable' %}
+<!-- Timetable Grid View -->
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0"><i class="fas fa-table me-2"></i>Weekly Timetable</h5>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-bordered timetable-grid">
+                <thead class="table-dark">
+                    <tr>
+                        <th style="width: 100px;">Time</th>
+                        {% for day_name in day_names %}
+                        <th class="text-center">{{ day_name }}</th>
+                        {% endfor %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% set time_slots = [
+                    ('08:00', '09:00'), ('09:00', '10:00'), ('10:00', '11:00'), ('11:00', '12:00'),
+                    ('12:00', '13:00'), ('13:00', '14:00'), ('14:00', '15:00'), ('15:00', '16:00'),
+                    ('16:00', '17:00'), ('17:00', '18:00'), ('18:00', '19:00'), ('19:00', '20:00')
+                    ] %}
+
+                    {% for start_time, end_time in time_slots %}
+                    <tr>
+                        <td class="time-slot bg-light">
+                            <strong>{{ start_time }}</strong><br>
+                            <small class="text-muted">{{ end_time }}</small>
+                        </td>
+                        {% for day_index in range(7) %}
+                        <td class="schedule-cell" data-day="{{ day_index }}" data-time="{{ start_time }}">
+                            {% for schedule in timetable[day_index] %}
+                            {% if schedule.start_time.strftime('%H:%M') <= start_time <
+                                schedule.end_time.strftime('%H:%M') %} <div class="schedule-item"
+                                data-schedule-id="{{ schedule.id }}">
+                                <div class="schedule-course">
+                                    <strong>{{ schedule.course.course_code }}</strong>
+                                </div>
+                                <div class="schedule-details">
+                                    <small>{{ schedule.classroom.room_number }}</small><br>
+                                    <small class="text-muted">{{ schedule.get_time_range() }}</small>
+                                    {% if schedule.exclusion_dates_list %}
+                                    <br><small class="text-warning">
+                                        <i class="fas fa-exclamation-triangle"></i> {{
+                                        schedule.exclusion_dates_list|length }} exclusions
+                                    </small>
+                                    {% endif %}
+                                </div>
+                                <div class="schedule-actions">
+                                    <button class="btn btn-sm btn-outline-primary"
+                                        onclick="editSchedule({{ schedule.id }})">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-danger"
+                                        onclick="deleteSchedule({{ schedule.id }})">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+        </div>
+        {% endif %}
+        {% endfor %}
+        </td>
+        {% endfor %}
+        </tr>
+        {% endfor %}
+        </tbody>
+        </table>
+    </div>
+</div>
+</div>
+{% else %}
+<!-- List View -->
 <div class="card mb-4">
     <div class="card-header d-flex justify-content-between align-items-center">
-        <h5 class="mb-0"><i class="fas fa-door-open me-2"></i>Manage Classrooms</h5>
-        <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addClassroomModal">
-            <i class="fas fa-plus me-2"></i>Add Classroom
-        </button>
+        <h5 class="mb-0"><i class="fas fa-list me-2"></i>Schedule List</h5>
+        <div>
+            <button class="btn btn-outline-danger btn-sm" id="bulkDeleteBtn" style="display: none;">
+                <i class="fas fa-trash me-2"></i>Delete Selected
+            </button>
+        </div>
     </div>
     <div class="card-body">
         <div class="table-responsive">
             <table class="table table-striped">
                 <thead>
                     <tr>
-                        <th>Room Number</th>
-                        <th>Building</th>
-                        <th>Capacity</th>
-                        <th>NFC Reader ID</th>
-                        <th>Status</th>
+                        <th>
+                            <input type="checkbox" id="selectAll" onchange="toggleSelectAll()">
+                        </th>
+                        <th>Course</th>
+                        <th>Day</th>
+                        <th>Time</th>
+                        <th>Classroom</th>
+                        <th>Semester</th>
+                        <th>Exclusions</th>
+                        <th>Actions</th>
                     </tr>
                 </thead>
                 <tbody>
-                    {% for classroom in classrooms %}
+                    {% for schedule in schedules %}
                     <tr>
-                        <td><strong>{{ classroom.room_number }}</strong></td>
-                        <td>{{ classroom.building or 'N/A' }}</td>
-                        <td>{{ classroom.capacity or 'N/A' }}</td>
-                        <td><code>{{ classroom.nfc_reader_id or 'Not Set' }}</code></td>
                         <td>
-                            <span class="badge bg-{{ 'success' if classroom.is_active else 'secondary' }}">
-                                {{ 'Active' if classroom.is_active else 'Inactive' }}
-                            </span>
+                            <input type="checkbox" class="schedule-checkbox" value="{{ schedule.id }}"
+                                onchange="updateBulkActions()">
+                        </td>
+                        <td>
+                            <strong>{{ schedule.course.course_code }}</strong><br>
+                            <small class="text-muted">{{ schedule.course.course_name }}</small>
+                        </td>
+                        <td>{{ schedule.get_day_name() }}</td>
+                        <td>{{ schedule.get_time_range() }}</td>
+                        <td>
+                            {{ schedule.classroom.room_number }}<br>
+                            <small class="text-muted">{{ schedule.classroom.building or 'N/A' }}</small>
+                        </td>
+                        <td>
+                            <span class="badge bg-primary">Semester {{ schedule.semester }}</span>
+                        </td>
+                        <td>
+                            {% if schedule.exclusion_dates_list %}
+                            <span class="badge bg-warning">{{ schedule.exclusion_dates_list|length }} dates</span>
+                            {% else %}
+                            <span class="text-muted">None</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="btn-group btn-group-sm">
+                                <button class="btn btn-outline-primary" onclick="editSchedule({{ schedule.id }})">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="btn btn-outline-info" onclick="viewScheduleDetails({{ schedule.id }})">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                                <button class="btn btn-outline-danger" onclick="deleteSchedule({{ schedule.id }})">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
                         </td>
                     </tr>
                     {% endfor %}
@@ -46,13 +205,14 @@
         </div>
     </div>
 </div>
+{% endif %}
 
-<!-- Manage Class Sessions Section -->
+<!-- Recent Class Sessions (for backward compatibility) -->
 <div class="card">
     <div class="card-header d-flex justify-content-between align-items-center">
-        <h5 class="mb-0"><i class="fas fa-clock me-2"></i>Manage Class Sessions</h5>
-        <button class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#addSessionModal">
-            <i class="fas fa-plus me-2"></i>Schedule Session
+        <h5 class="mb-0"><i class="fas fa-clock me-2"></i>Recent One-time Sessions</h5>
+        <button class="btn btn-outline-success btn-sm" data-bs-toggle="modal" data-bs-target="#addSessionModal">
+            <i class="fas fa-plus me-2"></i>Schedule One-time Session
         </button>
     </div>
     <div class="card-body">
@@ -71,14 +231,15 @@
                     {% for session in sessions %}
                     <tr>
                         <td>{{ session.session_date.strftime('%Y-%m-%d') }}</td>
-                        <td>{{ session.start_time.strftime('%I:%M %p') }} - {{ session.end_time.strftime('%I:%M %p') }}</td>
+                        <td>{{ session.start_time.strftime('%I:%M %p') }} - {{ session.end_time.strftime('%I:%M %p') }}
+                        </td>
                         <td>
                             <strong>{{ session.course.course_code }}</strong><br>
                             <small class="text-muted">{{ session.course.course_name }}</small>
                         </td>
                         <td>{{ session.classroom.room_number }}</td>
                         <td>
-                             <span class="badge bg-{{ 'success' if session.is_active else 'secondary' }}">
+                            <span class="badge bg-{{ 'success' if session.is_active else 'secondary' }}">
                                 {{ 'Active' if session.is_active else 'Inactive' }}
                             </span>
                         </td>
@@ -90,6 +251,240 @@
     </div>
 </div>
 
+<!-- Add Schedule Modal -->
+<div class="modal fade" id="addScheduleModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Create Recurring Schedule</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="addScheduleForm">
+                <div class="modal-body">
+                    <div id="schedule-feedback"></div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="schedule_course_id" class="form-label">Course *</label>
+                                <select class="form-select" id="schedule_course_id" name="course_id" required>
+                                    <option value="">Select a Course</option>
+                                    {% for course in courses %}
+                                    <option value="{{ course.id }}" data-semester="{{ course.semester }}">
+                                        {{ course.course_code }} - {{ course.course_name }} (Semester {{ course.semester
+                                        }})
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="schedule_classroom_id" class="form-label">Classroom *</label>
+                                <select class="form-select" id="schedule_classroom_id" name="classroom_id" required>
+                                    <option value="">Select a Classroom</option>
+                                    {% for classroom in classrooms %}
+                                    <option value="{{ classroom.id }}" data-capacity="{{ classroom.capacity }}">
+                                        {{ classroom.room_number }} ({{ classroom.building or 'N/A' }})
+                                        {% if classroom.capacity %} - Capacity: {{ classroom.capacity }}{% endif %}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="schedule_day_of_week" class="form-label">Day of Week *</label>
+                                <select class="form-select" id="schedule_day_of_week" name="day_of_week" required>
+                                    <option value="">Select Day</option>
+                                    <option value="0">Monday</option>
+                                    <option value="1">Tuesday</option>
+                                    <option value="2">Wednesday</option>
+                                    <option value="3">Thursday</option>
+                                    <option value="4">Friday</option>
+                                    <option value="5">Saturday</option>
+                                    <option value="6">Sunday</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="schedule_start_time" class="form-label">Start Time *</label>
+                                <input type="time" class="form-control" id="schedule_start_time" name="start_time"
+                                    required>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="schedule_end_time" class="form-label">End Time *</label>
+                                <input type="time" class="form-control" id="schedule_end_time" name="end_time" required>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="schedule_semester" class="form-label">Semester *</label>
+                        <select class="form-select" id="schedule_semester" name="semester" required>
+                            <option value="">Select Semester</option>
+                            <option value="1">Semester 1</option>
+                            <option value="2">Semester 2</option>
+                            <option value="3">Semester 3</option>
+                            <option value="4">Semester 4</option>
+                            <option value="5">Semester 5</option>
+                            <option value="6">Semester 6</option>
+                            <option value="7">Semester 7</option>
+                            <option value="8">Semester 8</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="exclusion_dates" class="form-label">Exclusion Dates (Optional)</label>
+                        <div id="exclusion-dates-container">
+                            <div class="input-group mb-2">
+                                <input type="date" class="form-control exclusion-date-input"
+                                    placeholder="Select date to exclude">
+                                <button type="button" class="btn btn-outline-success" onclick="addExclusionDate()">
+                                    <i class="fas fa-plus"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <small class="form-text text-muted">Add dates when this schedule should not occur (holidays,
+                            breaks, etc.)</small>
+                        <div id="exclusion-dates-list" class="mt-2"></div>
+                    </div>
+
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <strong>Conflict Detection:</strong> The system will automatically check for scheduling
+                        conflicts before creating the schedule.
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-outline-primary" onclick="checkConflicts()">Check
+                        Conflicts</button>
+                    <button type="submit" class="btn btn-success">Create Schedule</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Schedule Modal -->
+<div class="modal fade" id="editScheduleModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Edit Schedule</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="editScheduleForm">
+                <input type="hidden" id="edit_schedule_id" name="schedule_id">
+                <div class="modal-body">
+                    <div id="edit-schedule-feedback"></div>
+                    <!-- Same form fields as add modal, will be populated by JavaScript -->
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="edit_course_id" class="form-label">Course *</label>
+                                <select class="form-select" id="edit_course_id" name="course_id" required>
+                                    <option value="">Select a Course</option>
+                                    {% for course in courses %}
+                                    <option value="{{ course.id }}" data-semester="{{ course.semester }}">
+                                        {{ course.course_code }} - {{ course.course_name }} (Semester {{ course.semester
+                                        }})
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="edit_classroom_id" class="form-label">Classroom *</label>
+                                <select class="form-select" id="edit_classroom_id" name="classroom_id" required>
+                                    <option value="">Select a Classroom</option>
+                                    {% for classroom in classrooms %}
+                                    <option value="{{ classroom.id }}" data-capacity="{{ classroom.capacity }}">
+                                        {{ classroom.room_number }} ({{ classroom.building or 'N/A' }})
+                                        {% if classroom.capacity %} - Capacity: {{ classroom.capacity }}{% endif %}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="edit_day_of_week" class="form-label">Day of Week *</label>
+                                <select class="form-select" id="edit_day_of_week" name="day_of_week" required>
+                                    <option value="">Select Day</option>
+                                    <option value="0">Monday</option>
+                                    <option value="1">Tuesday</option>
+                                    <option value="2">Wednesday</option>
+                                    <option value="3">Thursday</option>
+                                    <option value="4">Friday</option>
+                                    <option value="5">Saturday</option>
+                                    <option value="6">Sunday</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="edit_start_time" class="form-label">Start Time *</label>
+                                <input type="time" class="form-control" id="edit_start_time" name="start_time" required>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="edit_end_time" class="form-label">End Time *</label>
+                                <input type="time" class="form-control" id="edit_end_time" name="end_time" required>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="edit_semester" class="form-label">Semester *</label>
+                        <select class="form-select" id="edit_semester" name="semester" required>
+                            <option value="">Select Semester</option>
+                            <option value="1">Semester 1</option>
+                            <option value="2">Semester 2</option>
+                            <option value="3">Semester 3</option>
+                            <option value="4">Semester 4</option>
+                            <option value="5">Semester 5</option>
+                            <option value="6">Semester 6</option>
+                            <option value="7">Semester 7</option>
+                            <option value="8">Semester 8</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Exclusion Dates</label>
+                        <div id="edit-exclusion-dates-container">
+                            <div class="input-group mb-2">
+                                <input type="date" class="form-control" id="edit-exclusion-date-input">
+                                <button type="button" class="btn btn-outline-success" onclick="addEditExclusionDate()">
+                                    <i class="fas fa-plus"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div id="edit-exclusion-dates-list" class="mt-2"></div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-outline-primary" onclick="checkEditConflicts()">Check
+                        Conflicts</button>
+                    <button type="submit" class="btn btn-primary">Update Schedule</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 
 <!-- Add Classroom Modal -->
 <div class="modal fade" id="addClassroomModal" tabindex="-1">
@@ -103,7 +498,7 @@
                 <div class="modal-body">
                     <div id="classroom-feedback"></div>
                     <div class="mb-3">
-                        <label for="room_number" class="form-label">Room Number</label>
+                        <label for="room_number" class="form-label">Room Number *</label>
                         <input type="text" class="form-control" id="room_number" name="room_number" required>
                     </div>
                     <div class="mb-3">
@@ -112,9 +507,9 @@
                     </div>
                     <div class="mb-3">
                         <label for="capacity" class="form-label">Capacity</label>
-                        <input type="number" class="form-control" id="capacity" name="capacity">
+                        <input type="number" class="form-control" id="capacity" name="capacity" min="1">
                     </div>
-                     <div class="mb-3">
+                    <div class="mb-3">
                         <label for="nfc_reader_id" class="form-label">NFC Reader ID</label>
                         <input type="text" class="form-control" id="nfc_reader_id" name="nfc_reader_id">
                     </div>
@@ -128,19 +523,19 @@
     </div>
 </div>
 
-<!-- Add Class Session Modal -->
+<!-- Add Class Session Modal (One-time sessions) -->
 <div class="modal fade" id="addSessionModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">Schedule New Class Session</h5>
+                <h5 class="modal-title">Schedule One-time Class Session</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <form id="addSessionForm">
                 <div class="modal-body">
                     <div id="session-feedback"></div>
                     <div class="mb-3">
-                        <label for="course_id" class="form-label">Course</label>
+                        <label for="course_id" class="form-label">Course *</label>
                         <select class="form-control" id="course_id" name="course_id" required>
                             <option value="">Select a Course</option>
                             {% for course in courses %}
@@ -149,28 +544,29 @@
                         </select>
                     </div>
                     <div class="mb-3">
-                        <label for="classroom_id" class="form-label">Classroom</label>
+                        <label for="classroom_id" class="form-label">Classroom *</label>
                         <select class="form-control" id="classroom_id" name="classroom_id" required>
-                             <option value="">Select a Classroom</option>
+                            <option value="">Select a Classroom</option>
                             {% for classroom in classrooms %}
-                            <option value="{{ classroom.id }}">{{ classroom.room_number }} ({{ classroom.building }})</option>
+                            <option value="{{ classroom.id }}">{{ classroom.room_number }} ({{ classroom.building }})
+                            </option>
                             {% endfor %}
                         </select>
                     </div>
                     <div class="mb-3">
-                        <label for="session_date" class="form-label">Date</label>
+                        <label for="session_date" class="form-label">Date *</label>
                         <input type="date" class="form-control" id="session_date" name="session_date" required>
                     </div>
                     <div class="row">
                         <div class="col-md-6">
                             <div class="mb-3">
-                                <label for="start_time" class="form-label">Start Time</label>
+                                <label for="start_time" class="form-label">Start Time *</label>
                                 <input type="time" class="form-control" id="start_time" name="start_time" required>
                             </div>
                         </div>
                         <div class="col-md-6">
-                             <div class="mb-3">
-                                <label for="end_time" class="form-label">End Time</label>
+                            <div class="mb-3">
+                                <label for="end_time" class="form-label">End Time *</label>
                                 <input type="time" class="form-control" id="end_time" name="end_time" required>
                             </div>
                         </div>
@@ -186,56 +582,527 @@
 </div>
 {% endblock %}
 
+{% block styles %}
+<style>
+    .timetable-grid {
+        font-size: 0.85rem;
+    }
+
+    .timetable-grid th {
+        background-color: #343a40 !important;
+        color: white;
+        text-align: center;
+        vertical-align: middle;
+    }
+
+    .time-slot {
+        font-weight: bold;
+        text-align: center;
+        vertical-align: middle;
+        background-color: #f8f9fa !important;
+    }
+
+    .schedule-cell {
+        position: relative;
+        padding: 4px;
+        vertical-align: top;
+        height: 60px;
+        min-width: 120px;
+    }
+
+    .schedule-item {
+        background: linear-gradient(135deg, #007bff, #0056b3);
+        color: white;
+        border-radius: 4px;
+        padding: 4px 6px;
+        margin-bottom: 2px;
+        font-size: 0.75rem;
+        position: relative;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .schedule-item:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    }
+
+    .schedule-course {
+        font-weight: bold;
+        margin-bottom: 2px;
+    }
+
+    .schedule-details {
+        line-height: 1.2;
+    }
+
+    .schedule-actions {
+        position: absolute;
+        top: 2px;
+        right: 2px;
+        opacity: 0;
+        transition: opacity 0.2s ease;
+    }
+
+    .schedule-item:hover .schedule-actions {
+        opacity: 1;
+    }
+
+    .schedule-actions .btn {
+        padding: 1px 4px;
+        font-size: 0.7rem;
+        margin-left: 1px;
+    }
+
+    .exclusion-date-tag {
+        display: inline-block;
+        background-color: #ffc107;
+        color: #000;
+        padding: 2px 6px;
+        border-radius: 3px;
+        font-size: 0.75rem;
+        margin: 2px;
+    }
+
+    .exclusion-date-tag .remove-date {
+        margin-left: 4px;
+        cursor: pointer;
+        font-weight: bold;
+    }
+
+    .exclusion-date-tag .remove-date:hover {
+        color: #dc3545;
+    }
+
+    .conflict-alert {
+        border-left: 4px solid #dc3545;
+        background-color: #f8d7da;
+        color: #721c24;
+    }
+
+    .no-conflict-alert {
+        border-left: 4px solid #28a745;
+        background-color: #d4edda;
+        color: #155724;
+    }
+</style>
+{% endblock %}
+
 {% block scripts %}
 <script>
-// Handle Add Classroom Form Submission
-document.getElementById('addClassroomForm').addEventListener('submit', async function(e) {
-    e.preventDefault();
-    const form = e.target;
-    const feedbackDiv = document.getElementById('classroom-feedback');
-    const data = Object.fromEntries(new FormData(form));
+    let exclusionDates = [];
+    let editExclusionDates = [];
 
-    try {
-        const response = await fetch("{{ url_for('api.create_classroom') }}", {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(data)
-        });
-        const result = await response.json();
-        if (response.ok) {
-            feedbackDiv.innerHTML = `<div class="alert alert-success">${result.message}</div>`;
-            setTimeout(() => location.reload(), 1000);
-        } else {
-            feedbackDiv.innerHTML = `<div class="alert alert-danger">${result.error}</div>`;
+    // Handle Add Classroom Form Submission
+    document.getElementById('addClassroomForm').addEventListener('submit', async function (e) {
+        e.preventDefault();
+        const form = e.target;
+        const feedbackDiv = document.getElementById('classroom-feedback');
+        const data = Object.fromEntries(new FormData(form));
+
+        try {
+            const response = await fetch("{{ url_for('api.create_classroom') }}", {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            const result = await response.json();
+            if (response.ok) {
+                feedbackDiv.innerHTML = `<div class="alert alert-success">${result.message}</div>`;
+                setTimeout(() => location.reload(), 1000);
+            } else {
+                feedbackDiv.innerHTML = `<div class="alert alert-danger">${result.error}</div>`;
+            }
+        } catch (error) {
+            feedbackDiv.innerHTML = `<div class="alert alert-danger">An unexpected error occurred.</div>`;
         }
-    } catch (error) {
-        feedbackDiv.innerHTML = `<div class="alert alert-danger">An unexpected error occurred.</div>`;
-    }
-});
+    });
 
-// Handle Add Class Session Form Submission
-document.getElementById('addSessionForm').addEventListener('submit', async function(e) {
-    e.preventDefault();
-    const form = e.target;
-    const feedbackDiv = document.getElementById('session-feedback');
-    const data = Object.fromEntries(new FormData(form));
+    // Handle Add Class Session Form Submission
+    document.getElementById('addSessionForm').addEventListener('submit', async function (e) {
+        e.preventDefault();
+        const form = e.target;
+        const feedbackDiv = document.getElementById('session-feedback');
+        const data = Object.fromEntries(new FormData(form));
 
-    try {
-        const response = await fetch("{{ url_for('api.create_class_session') }}", {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(data)
-        });
-        const result = await response.json();
-        if (response.ok) {
-            feedbackDiv.innerHTML = `<div class="alert alert-success">${result.message}</div>`;
-            setTimeout(() => location.reload(), 1000);
-        } else {
-            feedbackDiv.innerHTML = `<div class="alert alert-danger">${result.error}</div>`;
+        try {
+            const response = await fetch("{{ url_for('api.create_class_session') }}", {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            const result = await response.json();
+            if (response.ok) {
+                feedbackDiv.innerHTML = `<div class="alert alert-success">${result.message}</div>`;
+                setTimeout(() => location.reload(), 1000);
+            } else {
+                feedbackDiv.innerHTML = `<div class="alert alert-danger">${result.error}</div>`;
+            }
+        } catch (error) {
+            feedbackDiv.innerHTML = `<div class="alert alert-danger">An unexpected error occurred.</div>`;
         }
-    } catch (error) {
-        feedbackDiv.innerHTML = `<div class="alert alert-danger">An unexpected error occurred.</div>`;
+    });
+
+    // Handle Add Schedule Form Submission
+    document.getElementById('addScheduleForm').addEventListener('submit', async function (e) {
+        e.preventDefault();
+        const form = e.target;
+        const feedbackDiv = document.getElementById('schedule-feedback');
+        const formData = new FormData(form);
+        const data = Object.fromEntries(formData);
+
+        // Add exclusion dates
+        data.exclusion_dates = exclusionDates;
+
+        try {
+            const response = await fetch("{{ url_for('api.create_schedule') }}", {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            const result = await response.json();
+            if (response.ok) {
+                feedbackDiv.innerHTML = `<div class="alert alert-success">${result.message}</div>`;
+                setTimeout(() => location.reload(), 1000);
+            } else {
+                if (result.details) {
+                    const errorList = result.details.map(error => `<li>${error}</li>`).join('');
+                    feedbackDiv.innerHTML = `<div class="alert alert-danger">${result.error}<ul>${errorList}</ul></div>`;
+                } else {
+                    feedbackDiv.innerHTML = `<div class="alert alert-danger">${result.error}</div>`;
+                }
+            }
+        } catch (error) {
+            feedbackDiv.innerHTML = `<div class="alert alert-danger">An unexpected error occurred.</div>`;
+        }
+    });
+
+    // Handle Edit Schedule Form Submission
+    document.getElementById('editScheduleForm').addEventListener('submit', async function (e) {
+        e.preventDefault();
+        const form = e.target;
+        const feedbackDiv = document.getElementById('edit-schedule-feedback');
+        const formData = new FormData(form);
+        const data = Object.fromEntries(formData);
+        const scheduleId = data.schedule_id;
+
+        // Add exclusion dates
+        data.exclusion_dates = editExclusionDates;
+        delete data.schedule_id;
+
+        try {
+            const response = await fetch(`{{ url_for('api.get_schedules') }}/${scheduleId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            const result = await response.json();
+            if (response.ok) {
+                feedbackDiv.innerHTML = `<div class="alert alert-success">${result.message}</div>`;
+                setTimeout(() => location.reload(), 1000);
+            } else {
+                if (result.details) {
+                    const errorList = result.details.map(error => `<li>${error}</li>`).join('');
+                    feedbackDiv.innerHTML = `<div class="alert alert-danger">${result.error}<ul>${errorList}</ul></div>`;
+                } else {
+                    feedbackDiv.innerHTML = `<div class="alert alert-danger">${result.error}</div>`;
+                }
+            }
+        } catch (error) {
+            feedbackDiv.innerHTML = `<div class="alert alert-danger">An unexpected error occurred.</div>`;
+        }
+    });
+
+    // Auto-populate semester when course is selected
+    document.getElementById('schedule_course_id').addEventListener('change', function () {
+        const selectedOption = this.options[this.selectedIndex];
+        const semester = selectedOption.getAttribute('data-semester');
+        if (semester) {
+            document.getElementById('schedule_semester').value = semester;
+        }
+    });
+
+    // Exclusion dates management
+    function addExclusionDate() {
+        const input = document.querySelector('.exclusion-date-input');
+        const date = input.value;
+
+        if (date && !exclusionDates.includes(date)) {
+            exclusionDates.push(date);
+            updateExclusionDatesList();
+            input.value = '';
+        }
     }
-});
+
+    function removeExclusionDate(date) {
+        exclusionDates = exclusionDates.filter(d => d !== date);
+        updateExclusionDatesList();
+    }
+
+    function updateExclusionDatesList() {
+        const listDiv = document.getElementById('exclusion-dates-list');
+        listDiv.innerHTML = exclusionDates.map(date =>
+            `<span class="exclusion-date-tag">
+            ${date}
+            <span class="remove-date" onclick="removeExclusionDate('${date}')">&times;</span>
+        </span>`
+        ).join('');
+    }
+
+    // Edit exclusion dates management
+    function addEditExclusionDate() {
+        const input = document.getElementById('edit-exclusion-date-input');
+        const date = input.value;
+
+        if (date && !editExclusionDates.includes(date)) {
+            editExclusionDates.push(date);
+            updateEditExclusionDatesList();
+            input.value = '';
+        }
+    }
+
+    function removeEditExclusionDate(date) {
+        editExclusionDates = editExclusionDates.filter(d => d !== date);
+        updateEditExclusionDatesList();
+    }
+
+    function updateEditExclusionDatesList() {
+        const listDiv = document.getElementById('edit-exclusion-dates-list');
+        listDiv.innerHTML = editExclusionDates.map(date =>
+            `<span class="exclusion-date-tag">
+            ${date}
+            <span class="remove-date" onclick="removeEditExclusionDate('${date}')">&times;</span>
+        </span>`
+        ).join('');
+    }
+
+    // Conflict checking
+    async function checkConflicts() {
+        const form = document.getElementById('addScheduleForm');
+        const formData = new FormData(form);
+        const data = Object.fromEntries(formData);
+
+        if (!data.classroom_id || !data.day_of_week || !data.start_time || !data.end_time) {
+            alert('Please fill in classroom, day, and time fields first.');
+            return;
+        }
+
+        try {
+            const response = await fetch("{{ url_for('api.check_schedule_conflicts') }}", {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            const result = await response.json();
+
+            const feedbackDiv = document.getElementById('schedule-feedback');
+            if (result.has_conflicts) {
+                const conflictList = result.conflicts.map(conflict =>
+                    `<li>${conflict.course_code} - ${conflict.day_name} ${conflict.time_range}</li>`
+                ).join('');
+                feedbackDiv.innerHTML = `
+                <div class="alert conflict-alert">
+                    <strong>Scheduling Conflicts Found:</strong>
+                    <ul>${conflictList}</ul>
+                </div>`;
+            } else {
+                feedbackDiv.innerHTML = `
+                <div class="alert no-conflict-alert">
+                    <i class="fas fa-check-circle me-2"></i>
+                    <strong>No conflicts found!</strong> This schedule can be created safely.
+                </div>`;
+            }
+        } catch (error) {
+            document.getElementById('schedule-feedback').innerHTML =
+                `<div class="alert alert-danger">Error checking conflicts: ${error.message}</div>`;
+        }
+    }
+
+    async function checkEditConflicts() {
+        const form = document.getElementById('editScheduleForm');
+        const formData = new FormData(form);
+        const data = Object.fromEntries(formData);
+        data.exclude_id = data.schedule_id;
+
+        if (!data.classroom_id || !data.day_of_week || !data.start_time || !data.end_time) {
+            alert('Please fill in classroom, day, and time fields first.');
+            return;
+        }
+
+        try {
+            const response = await fetch("{{ url_for('api.check_schedule_conflicts') }}", {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            const result = await response.json();
+
+            const feedbackDiv = document.getElementById('edit-schedule-feedback');
+            if (result.has_conflicts) {
+                const conflictList = result.conflicts.map(conflict =>
+                    `<li>${conflict.course_code} - ${conflict.day_name} ${conflict.time_range}</li>`
+                ).join('');
+                feedbackDiv.innerHTML = `
+                <div class="alert conflict-alert">
+                    <strong>Scheduling Conflicts Found:</strong>
+                    <ul>${conflictList}</ul>
+                </div>`;
+            } else {
+                feedbackDiv.innerHTML = `
+                <div class="alert no-conflict-alert">
+                    <i class="fas fa-check-circle me-2"></i>
+                    <strong>No conflicts found!</strong> This schedule can be updated safely.
+                </div>`;
+            }
+        } catch (error) {
+            document.getElementById('edit-schedule-feedback').innerHTML =
+                `<div class="alert alert-danger">Error checking conflicts: ${error.message}</div>`;
+        }
+    }
+
+    // Schedule management functions
+    async function editSchedule(scheduleId) {
+        try {
+            const response = await fetch(`{{ url_for('api.get_schedules') }}/${scheduleId}`);
+            const schedule = await response.json();
+
+            if (response.ok) {
+                // Populate edit form
+                document.getElementById('edit_schedule_id').value = schedule.id;
+                document.getElementById('edit_course_id').value = schedule.course_id;
+                document.getElementById('edit_classroom_id').value = schedule.classroom_id;
+                document.getElementById('edit_day_of_week').value = schedule.day_of_week;
+                document.getElementById('edit_start_time').value = schedule.start_time;
+                document.getElementById('edit_end_time').value = schedule.end_time;
+                document.getElementById('edit_semester').value = schedule.semester;
+
+                // Set exclusion dates
+                editExclusionDates = schedule.exclusion_dates || [];
+                updateEditExclusionDatesList();
+
+                // Show modal
+                new bootstrap.Modal(document.getElementById('editScheduleModal')).show();
+            } else {
+                alert('Error loading schedule details');
+            }
+        } catch (error) {
+            alert('Error loading schedule details');
+        }
+    }
+
+    async function deleteSchedule(scheduleId) {
+        if (!confirm('Are you sure you want to delete this schedule? This action cannot be undone.')) {
+            return;
+        }
+
+        try {
+            const response = await fetch(`{{ url_for('api.get_schedules') }}/${scheduleId}`, {
+                method: 'DELETE'
+            });
+            const result = await response.json();
+
+            if (response.ok) {
+                alert(result.message);
+                location.reload();
+            } else {
+                alert('Error: ' + result.error);
+            }
+        } catch (error) {
+            alert('Error deleting schedule');
+        }
+    }
+
+    async function viewScheduleDetails(scheduleId) {
+        try {
+            const response = await fetch(`{{ url_for('api.get_schedules') }}/${scheduleId}`);
+            const schedule = await response.json();
+
+            if (response.ok) {
+                const exclusionText = schedule.exclusion_dates && schedule.exclusion_dates.length > 0
+                    ? schedule.exclusion_dates.join(', ')
+                    : 'None';
+
+                alert(`Schedule Details:
+Course: ${schedule.course_code} - ${schedule.course_name}
+Classroom: ${schedule.classroom_name} (${schedule.classroom_building || 'N/A'})
+Day: ${schedule.day_name}
+Time: ${schedule.time_range}
+Semester: ${schedule.semester}
+Exclusion Dates: ${exclusionText}
+Created: ${new Date(schedule.created_at).toLocaleDateString()}
+Updated: ${new Date(schedule.updated_at).toLocaleDateString()}`);
+            } else {
+                alert('Error loading schedule details');
+            }
+        } catch (error) {
+            alert('Error loading schedule details');
+        }
+    }
+
+    // Bulk operations
+    function toggleSelectAll() {
+        const selectAll = document.getElementById('selectAll');
+        const checkboxes = document.querySelectorAll('.schedule-checkbox');
+
+        checkboxes.forEach(checkbox => {
+            checkbox.checked = selectAll.checked;
+        });
+
+        updateBulkActions();
+    }
+
+    function updateBulkActions() {
+        const checkboxes = document.querySelectorAll('.schedule-checkbox:checked');
+        const bulkDeleteBtn = document.getElementById('bulkDeleteBtn');
+
+        if (checkboxes.length > 0) {
+            bulkDeleteBtn.style.display = 'inline-block';
+        } else {
+            bulkDeleteBtn.style.display = 'none';
+        }
+    }
+
+    document.getElementById('bulkDeleteBtn')?.addEventListener('click', async function () {
+        const checkboxes = document.querySelectorAll('.schedule-checkbox:checked');
+        const scheduleIds = Array.from(checkboxes).map(cb => parseInt(cb.value));
+
+        if (scheduleIds.length === 0) {
+            alert('Please select schedules to delete.');
+            return;
+        }
+
+        if (!confirm(`Are you sure you want to delete ${scheduleIds.length} selected schedules? This action cannot be undone.`)) {
+            return;
+        }
+
+        try {
+            const response = await fetch("{{ url_for('api.bulk_delete_schedules') }}", {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ schedule_ids: scheduleIds })
+            });
+            const result = await response.json();
+
+            if (response.ok) {
+                alert(result.message);
+                location.reload();
+            } else {
+                alert('Error: ' + result.error);
+            }
+        } catch (error) {
+            alert('Error deleting schedules');
+        }
+    });
+
+    // Initialize
+    document.addEventListener('DOMContentLoaded', function () {
+        // Set minimum date for exclusion dates to today
+        const today = new Date().toISOString().split('T')[0];
+        document.querySelectorAll('input[type="date"]').forEach(input => {
+            if (input.id.includes('exclusion') || input.id === 'session_date') {
+                input.min = today;
+            }
+        });
+    });
 </script>
 {% endblock %}
